@@ -1,3 +1,6 @@
+# On Windows, the Mendeley SQLite database location should be similar to the following:
+# C:\Users\<user>\AppData\Local\Mendeley Ltd\Mendeley Desktop\*.sqlite
+
 import sqlite3
 import sys
 import os
