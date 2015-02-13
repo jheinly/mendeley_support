@@ -1,6 +1,3 @@
-# On Windows, the Mendeley SQLite database location should be similar to the following:
-# C:\Users\<user>\AppData\Local\Mendeley Ltd\Mendeley Desktop\*.sqlite
-
 import sqlite3
 import glob
 import sys
@@ -36,15 +33,15 @@ if len(sys.argv) == 3:
 else:
   print('Attempting to automatically find Mendeley sqlite file...')
   mendeley_sqlite_path = 'invalid-path'
-  if os.name == 'nt':
+  if os.name == 'nt': # Windows
     folder = os.path.join(os.path.expanduser('~'),
       'AppData/Local/Mendeley Ltd/Mendeley Desktop')
     mendeley_sqlite_path = find_sqlite_in_folder(folder)
-  elif os.name == 'mac':
+  elif os.name == 'mac': # Mac
     folder = os.path.join(os.path.expanduser('~'),
       'Library/Application Support/Mendeley Desktop')
     mendeley_sqlite_path = find_sqlite_in_folder(folder)
-  elif os.name == 'posix':
+  elif os.name == 'posix': # Posix
     folder = os.path.join(os.path.expanduser('~'),
       '.local/share/data/Mendeley Ltd./Mendeley Desktop')
     mendeley_sqlite_path = find_sqlite_in_folder(folder)
@@ -61,12 +58,14 @@ else:
 connection = sqlite3.connect(mendeley_sqlite_path)
 cursor = connection.cursor()
 
+# Get a mapping between folder ids and their names.
 folder_id_to_name = dict()
 for row in cursor.execute('SELECT id,name FROM Folders;'):
   folder_id = row[0]
   folder_name = row[1]
   folder_id_to_name[folder_id] = folder_name
 
+# Get a mapping between folder ids and the document ids that belong to them.
 folder_id_to_document_ids = dict()
 for row in cursor.execute('SELECT documentId,folderId FROM DocumentFolders;'):
   document_id = row[0]
@@ -76,6 +75,7 @@ for row in cursor.execute('SELECT documentId,folderId FROM DocumentFolders;'):
   else:
     folder_id_to_document_ids[folder_id] = [document_id]
 
+# Get a mapping between document ids and document titles and years.
 document_id_to_title = dict()
 document_id_to_year = dict()
 for row in cursor.execute('SELECT id,title,year FROM Documents;'):
@@ -85,9 +85,11 @@ for row in cursor.execute('SELECT id,title,year FROM Documents;'):
   document_id_to_title[document_id] = document_title
   document_id_to_year[document_id] = document_year
 
+# Write the output file.
 output = open(output_file_path, 'w')
 first_folder = True
 for folder_id in folder_id_to_name:
+  # Write the folder name.
   folder_name = folder_id_to_name[folder_id]
   if not first_folder:
     output.write('\n')
@@ -96,6 +98,7 @@ for folder_id in folder_id_to_name:
   output.write(folder_name + '\n')
   output.write('-' * len(folder_name) + '\n')
   
+  # Write the documents in the current folder.
   if folder_id not in folder_id_to_document_ids:
     continue
   document_ids = folder_id_to_document_ids[folder_id]
