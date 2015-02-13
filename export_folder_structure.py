@@ -2,20 +2,61 @@
 # C:\Users\<user>\AppData\Local\Mendeley Ltd\Mendeley Desktop\*.sqlite
 
 import sqlite3
+import glob
 import sys
 import os
 
-num_expected_args = 2
-if len(sys.argv) != num_expected_args + 1:
-  print('USAGE: <mendeley_sqlite> <output_file>')
+if len(sys.argv) < 2 or len(sys.argv) > 3:
+  print('USAGE: <output_file> [mendeley_sqlite]')
+  print('  output_file     - file where the Mendeley folder structure will be written')
+  print('  mendeley_sqlite - path to Mendeley sqlite file, or empty if the script')
+  print('                    should attempt to find it automatically')
   sys.exit()
 
-mendeley_sqlite_path = sys.argv[1]
-output_file_path = sys.argv[2]
+output_file_path = sys.argv[1]
 
-if not os.path.exists(mendeley_sqlite_path):
-  print('ERROR: mendeley sqlite path must exist, "' + mendeley_sqlite_path + '"')
-  sys.exit()
+def find_sqlite_in_folder(folder):
+  if os.path.exists(folder):
+    files = glob.glob(folder + '/*.sqlite')
+    files = [f for f in files if os.path.basename(f) != 'monitor.sqlite']
+    if len(files) > 1:
+      print('ERROR: multiple sqlite files found')
+      for file in files:
+        print(file)
+      sys.exit()
+    elif len(files) == 1:
+      return files[0]
+  return 'invalid-path'
+
+if len(sys.argv) == 3:
+  mendeley_sqlite_path = sys.argv[2]
+  if not os.path.exists(mendeley_sqlite_path):
+    print('ERROR: mendeley sqlite path must exist, "' + mendeley_sqlite_path + '"')
+    sys.exit()
+else:
+  print('Attempting to automatically find Mendeley sqlite file...')
+  mendeley_sqlite_path = 'invalid-path'
+  if os.name == 'nt':
+    folder = os.path.join(os.path.expanduser('~'),
+      'AppData/Local/Mendeley Ltd/Mendeley Desktop')
+    mendeley_sqlite_path = find_sqlite_in_folder(folder)
+  elif os.name == 'mac':
+    folder = os.path.join(os.path.expanduser('~'),
+      'Library/Application Support/Mendeley Desktop')
+    mendeley_sqlite_path = find_sqlite_in_folder(folder)
+  elif os.name == 'posix':
+    folder = os.path.join(os.path.expanduser('~'),
+      '.local/share/data/Mendeley Ltd./Mendeley Desktop')
+    mendeley_sqlite_path = find_sqlite_in_folder(folder)
+  else:
+    print('ERROR: operating system not supported')
+    sys.exit()
+  if os.path.exists(mendeley_sqlite_path):
+    print('Found Mendeley sqlite file:')
+    print(mendeley_sqlite_path)
+  else:
+    print('ERROR: failed to automatically find Mendeley sqlite file')
+    sys.exit()
 
 connection = sqlite3.connect(mendeley_sqlite_path)
 cursor = connection.cursor()
