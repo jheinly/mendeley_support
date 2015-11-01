@@ -3,6 +3,10 @@ import glob
 import sys
 import os
 
+if sys.version_info.major < 3:
+    print('ERROR: Python 3 required in order to read SQLite file')
+    sys.exit()
+
 if len(sys.argv) < 2 or len(sys.argv) > 3:
     print('USAGE: <output_file> [mendeley_sqlite]')
     print('    output_file     - file where the Mendeley folder structure will be written')
