@@ -64,11 +64,12 @@ connection = sqlite3.connect(mendeley_sqlite_path)
 cursor = connection.cursor()
 
 # Get a mapping between folder ids and their names.
-folder_id_to_name = dict()
+folder_names_and_ids = []
 for row in cursor.execute('SELECT id,name FROM Folders;'):
     folder_id = row[0]
     folder_name = row[1]
-    folder_id_to_name[folder_id] = folder_name
+    folder_names_and_ids.append((folder_name, folder_id))
+folder_names_and_ids.sort()
 
 # Get a mapping between folder ids and the document ids that belong to them.
 folder_id_to_document_ids = dict()
@@ -93,9 +94,9 @@ for row in cursor.execute('SELECT id,title,year FROM Documents;'):
 # Write the output file.
 output = open(output_file_path, 'w')
 first_folder = True
-for folder_id in folder_id_to_name:
+for folder_name_and_id in folder_names_and_ids:
     # Write the folder name.
-    folder_name = folder_id_to_name[folder_id]
+    folder_name = folder_name_and_id[0]
     if not first_folder:
         output.write('\n')
     first_folder = False
@@ -104,6 +105,7 @@ for folder_id in folder_id_to_name:
     output.write('-' * len(folder_name) + '\n')
 
     # Write the documents in the current folder.
+    folder_id = folder_name_and_id[1]
     if folder_id not in folder_id_to_document_ids:
         continue
     document_ids = folder_id_to_document_ids[folder_id]
