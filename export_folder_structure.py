@@ -2,6 +2,7 @@ import sqlite3
 import glob
 import sys
 import os
+from unidecode import unidecode
 
 if sys.version_info.major < 3:
     print('ERROR: Python 3 required in order to read SQLite file')
@@ -67,7 +68,7 @@ cursor = connection.cursor()
 folder_names_and_ids = []
 for row in cursor.execute('SELECT id,name FROM Folders;'):
     folder_id = row[0]
-    folder_name = row[1]
+    folder_name = unidecode(row[1])
     folder_names_and_ids.append((folder_name, folder_id))
 folder_names_and_ids.sort()
 
@@ -89,7 +90,7 @@ document_id_to_year = dict()
 document_ids_without_folder_assignments = []
 for row in cursor.execute('SELECT id,title,year FROM Documents;'):
     document_id = row[0]
-    document_title = row[1]
+    document_title = unidecode(row[1])
     document_year = row[2]
     document_id_to_title[document_id] = document_title
     document_id_to_year[document_id] = document_year
