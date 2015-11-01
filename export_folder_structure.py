@@ -73,6 +73,7 @@ folder_names_and_ids.sort()
 
 # Get a mapping between folder ids and the document ids that belong to them.
 folder_id_to_document_ids = dict()
+document_ids_with_folder_assignments = set()
 for row in cursor.execute('SELECT documentId,folderId FROM DocumentFolders;'):
     document_id = row[0]
     folder_id = row[1]
@@ -80,37 +81,64 @@ for row in cursor.execute('SELECT documentId,folderId FROM DocumentFolders;'):
         folder_id_to_document_ids[folder_id].append(document_id)
     else:
         folder_id_to_document_ids[folder_id] = [document_id]
+    document_ids_with_folder_assignments.add(document_id)
 
 # Get a mapping between document ids and document titles and years.
 document_id_to_title = dict()
 document_id_to_year = dict()
+document_ids_without_folder_assignments = []
 for row in cursor.execute('SELECT id,title,year FROM Documents;'):
     document_id = row[0]
     document_title = row[1]
     document_year = row[2]
     document_id_to_title[document_id] = document_title
     document_id_to_year[document_id] = document_year
+    if document_id not in document_ids_with_folder_assignments:
+        document_ids_without_folder_assignments.append(document_id)
+
+def write_folder_to_output_file(output, folder_name, document_ids):
+    global document_id_to_title
+    global document_id_to_year
+
+    # Write the folder name.
+    output.write('=' * len(folder_name) + '\n')
+    output.write(folder_name + '\n')
+    output.write('-' * len(folder_name) + '\n')
+
+    # Write the documents in the folder.
+    for document_id in document_ids:
+        document_title = document_id_to_title[document_id]
+        document_year = document_id_to_year[document_id]
+        output.write('"' + document_title + '", ' + str(document_year) + '\n')
 
 # Write the output file.
 output = open(output_file_path, 'w')
 first_folder = True
 for folder_name_and_id in folder_names_and_ids:
-    # Write the folder name.
-    folder_name = folder_name_and_id[0]
+    # If this isn't the first folder written to the file, add an empty line to
+    # the file.
     if not first_folder:
         output.write('\n')
     first_folder = False
-    output.write('=' * len(folder_name) + '\n')
-    output.write(folder_name + '\n')
-    output.write('-' * len(folder_name) + '\n')
 
-    # Write the documents in the current folder.
+    folder_name = folder_name_and_id[0]
     folder_id = folder_name_and_id[1]
-    if folder_id not in folder_id_to_document_ids:
-        continue
-    document_ids = folder_id_to_document_ids[folder_id]
-    for document_id in document_ids:
-        document_title = document_id_to_title[document_id]
-        document_year = document_id_to_year[document_id]
-        output.write('"' + document_title + '", ' + str(document_year) + '\n')
+
+    # Get the documents assigned to this folder.
+    if folder_id in folder_id_to_document_ids:
+        document_ids = folder_id_to_document_ids[folder_id]
+    else:
+        document_ids = []
+
+    # Write the output for this folder.
+    write_folder_to_output_file(output, folder_name, document_ids)
+
+# If there were documents that were not assigned to a folder, write them at the
+# end of the file.
+if len(document_ids_without_folder_assignments) > 0:
+    if not first_folder:
+        output.write('\n')
+    write_folder_to_output_file(output, 'Unsorted',
+        document_ids_without_folder_assignments)
+
 output.close()
