@@ -93,15 +93,26 @@ for row in cursor.execute('SELECT id,title,year FROM Documents;'):
     document_title = unidecode(row[1])
     document_year = row[2]
     if document_year is None:
-        document_year = 'No Year'
+        document_year = 'Unknown Year'
     document_id_to_title[document_id] = document_title
     document_id_to_year[document_id] = document_year
     if document_id not in document_ids_with_folder_assignments:
         document_ids_without_folder_assignments.append(document_id)
 
+# Get a mapping between document ids and the document authors.
+document_id_to_authors = dict()
+for row in cursor.execute('SELECT id,documentId,lastName FROM DocumentContributors ORDER BY id ASC;'):
+    document_id = row[1]
+    author_name = unidecode(row[2])
+    if document_id in document_id_to_authors:
+        document_id_to_authors[document_id].append(author_name)
+    else:
+        document_id_to_authors[document_id] = [author_name]
+
 def write_folder_to_output_file(output, folder_name, document_ids):
     global document_id_to_title
     global document_id_to_year
+    global document_id_to_authors
 
     # Write the folder name.
     output.write('=' * len(folder_name) + '\n')
@@ -110,9 +121,15 @@ def write_folder_to_output_file(output, folder_name, document_ids):
 
     # Write the documents in the folder.
     for document_id in document_ids:
+        if document_id in document_id_to_authors:
+            document_authors = document_id_to_authors[document_id]
+        else:
+            document_authors = ['Unknown Authors']
+        document_authors = ', '.join(document_authors)
         document_title = document_id_to_title[document_id]
         document_year = document_id_to_year[document_id]
-        output.write('"' + document_title + '", ' + str(document_year) + '\n')
+        output.write(document_authors + ', "' + document_title + '", ' +
+            str(document_year) + '\n')
 
 # Write the output file.
 output = open(output_file_path, 'w')
