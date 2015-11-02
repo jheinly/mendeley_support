@@ -92,6 +92,8 @@ for row in cursor.execute('SELECT id,title,year FROM Documents;'):
     document_id = row[0]
     document_title = unidecode(row[1])
     document_year = row[2]
+    if document_year is None:
+        document_year = 'No Year'
     document_id_to_title[document_id] = document_title
     document_id_to_year[document_id] = document_year
     if document_id not in document_ids_with_folder_assignments:
