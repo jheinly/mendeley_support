@@ -109,6 +109,13 @@ for row in cursor.execute('SELECT id,documentId,lastName FROM DocumentContributo
     else:
         document_id_to_authors[document_id] = [author_name]
 
+def document_to_line(document_authors, document_title, document_year):
+    document_authors = ', '.join(document_authors)
+    document_title = '"' + document_title + '"'
+    document_year = str(document_year)
+    line = document_authors + ', ' + document_title + ', ' + document_year
+    return line
+
 def write_folder_to_output_file(output, folder_name, document_ids):
     global document_id_to_title
     global document_id_to_year
@@ -119,17 +126,32 @@ def write_folder_to_output_file(output, folder_name, document_ids):
     output.write(folder_name + '\n')
     output.write('-' * len(folder_name) + '\n')
 
-    # Write the documents in the folder.
+    # Create a list of the documents, so that they can be sorted. Keep a
+    # separate list of documents with unknown authors, so that they can be put
+    # at the end of the list.
+    document_lines = []
+    document_lines_with_unknown_authors = []
     for document_id in document_ids:
-        if document_id in document_id_to_authors:
-            document_authors = document_id_to_authors[document_id]
-        else:
-            document_authors = ['Unknown Authors']
-        document_authors = ', '.join(document_authors)
         document_title = document_id_to_title[document_id]
         document_year = document_id_to_year[document_id]
-        output.write(document_authors + ', "' + document_title + '", ' +
-            str(document_year) + '\n')
+        if document_id in document_id_to_authors:
+            document_authors = document_id_to_authors[document_id]
+            document_lines.append(document_to_line(
+                document_authors, document_title, document_year))
+        else:
+            document_authors = ['Unknown Authors']
+            document_lines_with_unknown_authors.append(document_to_line(
+                document_authors, document_title, document_year))
+
+    # Sort the documents by authors, title, then year.
+    document_lines.sort()
+    document_lines_with_unknown_authors.sort()
+
+    # Write the documents to the file.
+    for line in document_lines:
+        output.write(line + '\n')
+    for line in document_lines_with_unknown_authors:
+        output.write(line + '\n')
 
 # Write the output file.
 output = open(output_file_path, 'w')
